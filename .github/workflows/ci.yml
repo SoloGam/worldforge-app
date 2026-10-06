@@ -121,6 +121,45 @@ jobs:
             exit 1
           fi
           echo "No .gitleaksignore tracked."
+      # `gitleaks git` reads `git log -p`, and git applies the CHECKED-OUT
+      # .gitattributes to every past commit. A PR adding e.g.
+      # `worldforge-mod/** binary` (or `-diff`) would turn those patches into
+      # "Binary files differ" and hide secrets in history, even deleted ones.
+      # .git/info/attributes beats any in-tree .gitattributes, and `!diff`
+      # resets the diff attribute (and any diff driver) to unspecified, so git
+      # falls back to content-based binary detection. This affects only how the
+      # history scan sees diffs, not the checkout or the working-tree scan.
+      # (Not `--log-opts=--text`: it stops gitleaks from opening archives.)
+      # Fail closed: every path that ever existed in history must then report
+      # `diff: unspecified`; any other answer, or a git failure, fails the step.
+      - name: Neutralise in-tree diff attributes for the history scan
+        run: |
+          set -euo pipefail
+          fail() { echo "::error title=diff attribute override failed::$1"; exit 1; }
+          attr_file="$(git rev-parse --git-path info/attributes)"
+          mkdir -p "$(dirname "$attr_file")"
+          # Leading newline: never glue onto a last line that lacks one.
+          printf '\n* !diff\n' >> "$attr_file"
+          # Every path in history (sorted, unique, non-empty). Empty = fail.
+          paths="$(git log --all --format= --name-only | sort -u | grep .)" ||
+            fail "could not list history paths (git log failed or history is empty)"
+          attrs="$(printf '%s\n' "$paths" | git check-attr --stdin diff)" ||
+            fail "git check-attr failed"
+          n_paths="$(printf '%s\n' "$paths" | wc -l)"
+          n_attrs="$(printf '%s\n' "$attrs" | wc -l)"
+          [ "$n_paths" -eq "$n_attrs" ] ||
+            fail "git check-attr answered for $n_attrs of $n_paths paths"
+          # grep -v exits 1 when it selects nothing (the success case), 2 on error.
+          rc=0
+          bad="$(printf '%s\n' "$attrs" | grep -v ': diff: unspecified$')" || rc=$?
+          [ "$rc" -le 1 ] || fail "grep failed (exit $rc)"
+          if [ -n "$bad" ]; then
+            while IFS= read -r line; do
+              echo "::error title=diff attribute still set::$line"
+            done <<< "$bad"
+            fail "$(printf '%s\n' "$bad" | wc -l) history path(s) still have a diff attribute"
+          fi
+          echo "diff: unspecified for all $n_paths history paths."
       # Both scans use .gitleaks.toml (default rules + one narrow allowlist entry),
       # open archives (zips, incl. ones committed then deleted) and ignore inline
       # `gitleaks:allow` comments, so only .gitleaks.toml can allow a finding.

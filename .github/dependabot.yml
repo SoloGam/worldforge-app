@@ -1,0 +1,58 @@
+# Dependabot version updates for SoloGam/worldforge-app.
+#
+# Dependabot PRs go through the normal review chain and the required CI checks
+# (web, mod, audit, secrets, mod-source sync). Nothing here auto-merges them.
+#
+# Gradle (worldforge-mod/) is deliberately NOT configured: worldforge-mod/ must
+# stay byte-identical to the shipped worldforge-0.4.0 zip and the MOD_SOURCE
+# copy (the required "mod-source sync" check compares them byte for byte), and
+# Dependabot can only edit worldforge-mod/. Every Gradle PR would therefore fail
+# that check. Bump the mod's Gradle/ForgeGradle versions by hand, together with
+# a new release zip and MOD_SOURCE.
+version: 2
+updates:
+  # SHA-pinned actions in .github/workflows/: Dependabot bumps the SHA and the
+  # "# vX.Y.Z" comment together.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Brussels"
+    # Wait a week after a release before proposing it (supply-chain buffer).
+    # Applies to version updates only; security updates are never delayed.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      # One PR for all minor/patch action bumps; majors get their own PRs.
+      actions-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  # package.json / package-lock.json at the repo root.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Brussels"
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # One PR for all minor/patch npm bumps; majors get their own PRs.
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"

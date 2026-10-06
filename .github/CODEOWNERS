@@ -1,0 +1,37 @@
+# CODEOWNERS for SoloGam/worldforge-app
+#
+# A record of who owns the security-sensitive paths, and a way to get
+# @SoloGam auto-requested as reviewer on any PR (including Dependabot's) that
+# touches them. Code-owner review is NOT required: the "main protection"
+# ruleset sets require_code_owner_review=false and 0 required approvals, so
+# this file never blocks a merge on its own. Revisit that if outside
+# contributors or other accounts with merge rights are added.
+#
+# Later matching lines take precedence over earlier ones; every line here has
+# the same owner, so the order only matters for readability.
+
+# CI workflows, Dependabot config and this file itself.
+/.github/                       @SoloGam
+
+# gitleaks: the reviewed config is the only allowed exception path.
+/.gitleaks.toml                 @SoloGam
+# CI fails on any tracked .gitleaksignore; own them anywhere so one in a PR is noticed.
+.gitleaksignore                 @SoloGam
+
+# Git attributes change how files are checked out and diffed (the mod-source
+# byte-exact check, and the gitleaks history scan's view of past commits).
+.gitattributes                  @SoloGam
+
+# Auth: the whole directory (shared live-preview client, server-side fallback,
+# session verification, middleware, and anything added there later).
+/src/lib/auth/                  @SoloGam
+
+# Mod-source sync check (script + test): the gate keeping worldforge-mod/, the
+# 0.4.0 zip and MOD_SOURCE identical. `*` matches within a file name
+# (gitignore syntax, supported by CODEOWNERS).
+/scripts/check-mod-source-sync*.mjs @SoloGam
+
+# Dependencies and the Node version: supply chain and Dependabot PRs.
+/package.json                   @SoloGam
+/package-lock.json              @SoloGam
+/.nvmrc                         @SoloGam
