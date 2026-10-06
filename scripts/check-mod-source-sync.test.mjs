@@ -70,35 +70,79 @@ function fixture() {
       ["build.gradle", file("plugins {\r\n}\r\n")],
       ["gradlew", file("#!/bin/sh\n", true)],
       ["gradle/wrapper/gradle-wrapper.jar", { data: jar, executable: false }],
-      ["README.md", file("# new\n")],
+      ["README.md", file("# WorldForge\n")],
       ["src/main/java/A.java", file("class A {\n}\n")],
     ]),
     zip: new Map([
       ["build.gradle", file("plugins {\r\n}\r\n")],
       ["gradlew", file("#!/bin/sh\n", true)],
       ["gradle/wrapper/gradle-wrapper.jar", { data: Buffer.from(jar), executable: false }],
-      ["README.md", file("# old\n")],
+      ["README.md", file("# WorldForge\n")],
       ["src/main/java/A.java", file("class A {\n}\n")],
     ]),
     modSource: new Map([
       ["build.gradle", "plugins {\n}\n"],
       ["gradlew", "#!/bin/sh\n"],
-      ["README.md", "# old\n"],
+      ["README.md", "# WorldForge\n"],
       ["src/main/java/A.java", "class A {\n}\n"],
     ]),
-    knownDrift: new Map([["README.md", "test drift"]]),
   };
 }
 
-test("the repo's three mod-source copies are in sync (README.md drift tolerated)", async () => {
-  const { problems, tolerated, counts } = await checkModSourceSync(projectRoot());
+/** The KNOWN_DRIFT mechanism (empty in the repo): README.md newer in the dir only. */
+function driftFixture() {
+  const f = fixture();
+  f.dir.set("README.md", file("# new\n"));
+  f.zip.set("README.md", file("# old\n"));
+  f.modSource.set("README.md", "# old\n");
+  f.knownDrift = new Map([["README.md", "test drift"]]);
+  return f;
+}
+
+test("the repo's three mod-source copies are in sync with zero tolerated drift", async () => {
+  assert.equal(KNOWN_DRIFT.size, 0);
+  const { problems, tolerated, notices, counts } = await checkModSourceSync(projectRoot());
   assert.deepEqual(problems, []);
-  for (const { path } of tolerated) assert.ok(KNOWN_DRIFT.has(path), path);
+  assert.deepEqual(tolerated, []);
+  assert.deepEqual(notices, []);
   assert.ok(counts.dir > 0 && counts.zip > 0 && counts.modSource > 0);
 });
 
 test("an in-sync fixture passes; CRLF vs LF is not drift", () => {
   const result = compareModCopies(fixture());
+  assert.deepEqual(result, { problems: [], tolerated: [], notices: [] });
+});
+
+test("a README.md change in the dir only now fails (no tolerated drift)", () => {
+  const f = fixture();
+  f.dir.set("README.md", file("# WorldForge\n\nRequires JDK 21.\n"));
+  const { problems, tolerated } = compareModCopies(f);
+  assert.deepEqual(tolerated, []);
+  assert.equal(problems.length, 2); // dir vs zip, dir vs MOD_SOURCE
+  assert.match(
+    problems[0],
+    /^README\.md: content differs between worldforge-mod\/ and zip:worldforge-mod\//,
+  );
+  assert.match(
+    problems[1],
+    /^README\.md: content differs between worldforge-mod\/ and MOD_SOURCE:/,
+  );
+  assert.match(problems[0], /^-Requires JDK 21\.$/m);
+});
+
+test("a README.md change in MOD_SOURCE only fails", () => {
+  const f = fixture();
+  f.modSource.set("README.md", "# WorldForge (old)\n");
+  const { problems } = compareModCopies(f);
+  assert.equal(problems.length, 1);
+  assert.match(
+    problems[0],
+    /^README\.md: content differs between worldforge-mod\/ and MOD_SOURCE:/,
+  );
+});
+
+test("a KNOWN_DRIFT entry tolerates the dir leading and shows the diff", () => {
+  const result = compareModCopies(driftFixture());
   assert.deepEqual(result.problems, []);
   assert.equal(result.tolerated.length, 1);
   assert.equal(result.tolerated[0].path, "README.md");
@@ -205,7 +249,7 @@ test("a binary file listed in MOD_SOURCE fails", () => {
 });
 
 test("a known-drift path still needs the zip and MOD_SOURCE to agree", () => {
-  const f = fixture();
+  const f = driftFixture();
   f.modSource.set("README.md", "# other\n");
   const { problems } = compareModCopies(f);
   assert.equal(problems.length, 1);
@@ -216,13 +260,13 @@ test("a known-drift path still needs the zip and MOD_SOURCE to agree", () => {
 });
 
 test("a known-drift path is still required in all three copies", () => {
-  const f = fixture();
+  const f = driftFixture();
   f.zip.delete("README.md");
   assert.match(compareModCopies(f).problems.join("\n"), /^README\.md: missing from zip:/m);
 });
 
 test("a known-drift entry that is no longer needed is reported", () => {
-  const f = fixture();
+  const f = driftFixture();
   f.dir.set("README.md", file("# old\n"));
   const { problems, notices } = compareModCopies(f);
   assert.deepEqual(problems, []);
@@ -230,7 +274,7 @@ test("a known-drift entry that is no longer needed is reported", () => {
 });
 
 test("drift outside KNOWN_DRIFT is not tolerated", () => {
-  const f = fixture();
+  const f = driftFixture();
   f.knownDrift = new Map();
   assert.match(compareModCopies(f).problems.join("\n"), /README\.md: content differs/);
 });
