@@ -19,6 +19,7 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
+    "check:mod-source": "node --experimental-strip-types scripts/check-mod-source-sync.mjs",
     "test": "node --experimental-strip-types --test 'scripts/**/*.test.mjs' 'src/**/*.test.ts'",
     "lint": "eslint .",
     "format": "prettier --write ."
