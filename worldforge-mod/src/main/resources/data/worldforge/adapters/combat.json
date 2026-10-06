@@ -1,0 +1,7 @@
+{
+  "id": "worldforge:combat",
+  "domain": "COMBAT",
+  "targets": ["minecraft", "apotheosis", "bettercombat"],
+  "bindPolicy": "vanilla-registry-then-documented-api",
+  "notes": "Vanilla Registries.DAMAGE_TYPE is the official combat surface. Extra mods stay detected-only."
+}

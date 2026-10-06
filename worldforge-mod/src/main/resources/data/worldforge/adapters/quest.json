@@ -1,0 +1,7 @@
+{
+  "id": "worldforge:quest",
+  "domain": "QUEST",
+  "targets": ["ftbquests", "heracles"],
+  "bindPolicy": "documented-api-only",
+  "notes": "Quest graphs stay unbound until an official quest API is compiled in."
+}

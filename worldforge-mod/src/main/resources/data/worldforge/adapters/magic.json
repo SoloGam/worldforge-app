@@ -1,0 +1,7 @@
+{
+  "id": "worldforge:magic",
+  "domain": "MAGIC",
+  "targets": ["ars_nouveau", "irons_spellbooks"],
+  "bindPolicy": "documented-api-only",
+  "notes": "1.21.1 APIs for these mods are published for NeoForge. WorldForge is Forge and does not compile them. src/optional-ars is excluded from the jar."
+}

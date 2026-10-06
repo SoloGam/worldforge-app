@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "WorldForge",
+      "hasCanvas": false,
+      "bodyTextLen": 1031,
+      "bodyTextHash": "e4ac9ce95d95ae3062d80a064a284c12c693bb30d1e063a677794d6fc10bead9",
+      "bodyTextPrefix": "WorldForge Forge 1.21.1 · 0.4.0 Core Discovery Knowledge Adapter",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "WorldForge",
+      "hasCanvas": false,
+      "bodyTextLen": 1396,
+      "bodyTextHash": "9ae1c937f3a8ca9ea8b01538b9cb9d114e9791ebe9d8014cfb1a3d682fb8c9cc",
+      "bodyTextPrefix": "WorldForge Forge 1.21.1 · 0.4.0 RUNNING Menu MINECRAFT 1.21.1 · ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "worldforge:technology",
+  "domain": "TECHNOLOGY",
+  "targets": ["create", "immersiveengineering", "mekanism"],
+  "bindPolicy": "documented-api-only",
+  "notes": "Create/IE/Mekanism presence is not kinetic or energy simulation."
+}

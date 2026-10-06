@@ -1,0 +1,40 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "WorldForge",
+      "hasCanvas": false,
+      "bodyTextLen": 1031,
+      "bodyTextHash": "e4ac9ce95d95ae3062d80a064a284c12c693bb30d1e063a677794d6fc10bead9",
+      "bodyTextPrefix": "WorldForge Forge 1.21.1 · 0.4.0 Core Discovery Knowledge Adapter",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "WorldForge",
+      "hasCanvas": false,
+      "bodyTextLen": 992,
+      "bodyTextHash": "838a0c88eb1f88053f5a0e0d710da132d5206b005a72bc925e70f3f63e1b5d1d",
+      "bodyTextPrefix": "WorldForge Forge 1.21.1 · 0.4.0 RUNNING Menu MINECRAFT 1.21.1 · ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": true,
+  "baselineReasons": [
+    "mobile: body text changed (1396 -> 992 chars, hash mismatch)"
+  ]
+}
