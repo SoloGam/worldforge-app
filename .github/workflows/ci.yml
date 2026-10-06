@@ -121,6 +121,27 @@ jobs:
             exit 1
           fi
           echo "No .gitleaksignore tracked."
+      # `gitleaks git` reads `git log -p`, and git applies the CHECKED-OUT
+      # .gitattributes to every past commit. A PR adding e.g.
+      # `worldforge-mod/** binary` (or `-diff`) would turn those patches into
+      # "Binary files differ" and hide secrets in history, even deleted ones.
+      # .git/info/attributes beats any in-tree .gitattributes, and `!diff`
+      # resets the diff attribute (and any diff driver) to unspecified, so git
+      # falls back to content-based binary detection. This affects only how the
+      # history scan sees diffs, not the checkout or the working-tree scan.
+      # (Not `--log-opts=--text`: it stops gitleaks from opening archives.)
+      - name: Neutralise in-tree diff attributes for the history scan
+        run: |
+          set -euo pipefail
+          attr_file="$(git rev-parse --git-path info/attributes)"
+          mkdir -p "$(dirname "$attr_file")"
+          printf '* !diff\n' >> "$attr_file"
+          probe="$(git check-attr diff -- worldforge-mod/build.gradle)"
+          echo "$probe"
+          if [ "$probe" != "worldforge-mod/build.gradle: diff: unspecified" ]; then
+            echo "::error title=diff attribute override failed::expected 'diff: unspecified', got: $probe"
+            exit 1
+          fi
       # Both scans use .gitleaks.toml (default rules + one narrow allowlist entry),
       # open archives (zips, incl. ones committed then deleted) and ignore inline
       # `gitleaks:allow` comments, so only .gitleaks.toml can allow a finding.
