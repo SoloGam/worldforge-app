@@ -10,7 +10,10 @@
  *
  * Rules:
  *  - All three must hold the same set of text files with the same content.
- *    Line endings are normalized (CRLF -> LF) because MOD_SOURCE stores LF only
+ *  - dir vs zip is byte for byte, line endings included: a zip repacked with
+ *    CRLF `gradlew` (or LF `gradlew.bat`) must fail, it breaks the download.
+ *  - Comparisons against MOD_SOURCE normalize line endings (CRLF -> LF) on
+ *    both sides: MOD_SOURCE stores LF only (it is display text for /source),
  *    while `build.gradle` / `gradlew.bat` are CRLF in the dir and the zip.
  *  - Binary files (any NUL byte, e.g. `gradle/wrapper/gradle-wrapper.jar`) and
  *    the executable bit (`gradlew`) can't be held by MOD_SOURCE, so they are
@@ -94,8 +97,15 @@ export function isBinary(buffer) {
   return buffer.includes(0);
 }
 
+/** CRLF -> LF. Only used when comparing against MOD_SOURCE (LF-only display text). */
 export function normalizeText(text) {
   return text.replace(/\r\n/g, "\n");
+}
+
+function countCrlf(buffer) {
+  let count = 0;
+  for (let i = buffer.indexOf("\r\n"); i !== -1; i = buffer.indexOf("\r\n", i + 2)) count++;
+  return count;
 }
 
 /** `Map<relPath, { data: Buffer, executable: boolean }>` for the mod dir. */
@@ -294,6 +304,7 @@ export function compareModCopies({ dir, zip, modSource, knownDrift = KNOWN_DRIFT
       continue;
     }
 
+    // Normalized text: used for every comparison against MOD_SOURCE and for diffs.
     const text = {
       dir: d && normalizeText(d.data.toString("utf8")),
       zip: z && normalizeText(z.data.toString("utf8")),
@@ -304,7 +315,28 @@ export function compareModCopies({ dir, zip, modSource, knownDrift = KNOWN_DRIFT
       ["dir", "src"],
       ["zip", "src"],
     ].filter(([x, y]) => text[x] !== undefined && text[y] !== undefined);
-    const differing = pairs.filter(([x, y]) => text[x] !== text[y]);
+    // dir vs zip is byte for byte (line endings included); MOD_SOURCE pairs are normalized.
+    const same = (x, y) =>
+      x === "dir" && y === "zip" ? d.data.equals(z.data) : text[x] === text[y];
+    const differing = pairs.filter(([x, y]) => !same(x, y));
+    const describe = (x, y) => {
+      if (x !== "dir" || y !== "zip") {
+        return (
+          `${path}: content differs between ${label[x]} and ${label[y]}\n` +
+          unifiedDiff(text[x], text[y], label[x] + path, label[y] + path)
+        );
+      }
+      const crlf = `${label.dir} has ${countCrlf(d.data)} CRLF line(s), ${label.zip} has ${countCrlf(z.data)}`;
+      if (text.dir === text.zip) {
+        return `${path}: line-ending-only difference between ${label.dir} and ${label.zip} (${crlf})`;
+      }
+      const endings =
+        countCrlf(d.data) === countCrlf(z.data) ? "" : ` (line endings differ too: ${crlf})`;
+      return (
+        `${path}: content differs between ${label.dir} and ${label.zip}${endings}\n` +
+        unifiedDiff(text.dir, text.zip, label.dir + path, label.zip + path)
+      );
+    };
 
     if (knownDrift.has(path)) {
       const reason = knownDrift.get(path);
@@ -335,10 +367,7 @@ export function compareModCopies({ dir, zip, modSource, knownDrift = KNOWN_DRIFT
     for (const [x, y] of differing) {
       if (reported.has(y)) continue;
       reported.add(y);
-      problems.push(
-        `${path}: content differs between ${label[x]} and ${label[y]}\n` +
-          unifiedDiff(text[x], text[y], label[x] + path, label[y] + path),
-      );
+      problems.push(describe(x, y));
     }
   }
   return { problems, tolerated, notices };

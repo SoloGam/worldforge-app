@@ -71,17 +71,20 @@ function fixture() {
       ["gradlew", file("#!/bin/sh\n", true)],
       ["gradle/wrapper/gradle-wrapper.jar", { data: jar, executable: false }],
       ["README.md", file("# new\n")],
+      ["src/main/java/A.java", file("class A {\n}\n")],
     ]),
     zip: new Map([
       ["build.gradle", file("plugins {\r\n}\r\n")],
       ["gradlew", file("#!/bin/sh\n", true)],
       ["gradle/wrapper/gradle-wrapper.jar", { data: Buffer.from(jar), executable: false }],
       ["README.md", file("# old\n")],
+      ["src/main/java/A.java", file("class A {\n}\n")],
     ]),
     modSource: new Map([
       ["build.gradle", "plugins {\n}\n"],
       ["gradlew", "#!/bin/sh\n"],
       ["README.md", "# old\n"],
+      ["src/main/java/A.java", "class A {\n}\n"],
     ]),
     knownDrift: new Map([["README.md", "test drift"]]),
   };
@@ -131,6 +134,55 @@ for (const copy of ["dir", "zip", "modSource"]) {
     assert.match(problems[0], /^NEW\.md: missing from /);
   });
 }
+
+const toCrlf = (f) => ({ ...f, data: Buffer.from(f.data.toString().replace(/\n/g, "\r\n")) });
+
+test("a dir .java converted to CRLF fails as a line-ending-only dir vs zip difference", () => {
+  const f = fixture();
+  f.dir.set("src/main/java/A.java", toCrlf(f.dir.get("src/main/java/A.java")));
+  const { problems } = compareModCopies(f);
+  assert.deepEqual(problems, [
+    "src/main/java/A.java: line-ending-only difference between worldforge-mod/ and " +
+      "zip:worldforge-mod/ (worldforge-mod/ has 2 CRLF line(s), zip:worldforge-mod/ has 0)",
+  ]);
+});
+
+test("the zip's gradlew converted to CRLF fails (dir vs zip is byte for byte)", () => {
+  const f = fixture();
+  f.zip.set("gradlew", toCrlf(f.zip.get("gradlew")));
+  const { problems } = compareModCopies(f);
+  assert.equal(problems.length, 1);
+  assert.match(
+    problems[0],
+    /^gradlew: line-ending-only difference between worldforge-mod\/ and zip:worldforge-mod\/ \(worldforge-mod\/ has 0 CRLF line\(s\), zip:worldforge-mod\/ has 1\)$/,
+  );
+});
+
+test("CRLF build.gradle in dir+zip converted to LF in the zip fails", () => {
+  const f = fixture();
+  f.zip.set("build.gradle", file("plugins {\n}\n"));
+  const { problems } = compareModCopies(f);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /^build\.gradle: line-ending-only difference/);
+});
+
+test("a content change plus a line-ending change between dir and zip shows both", () => {
+  const f = fixture();
+  f.zip.set("src/main/java/A.java", file("class A {\r\n  int x;\r\n}\r\n"));
+  const { problems } = compareModCopies(f);
+  assert.match(
+    problems[0],
+    /^src\/main\/java\/A\.java: content differs between worldforge-mod\/ and zip:worldforge-mod\/ \(line endings differ too: worldforge-mod\/ has 0 CRLF line\(s\), zip:worldforge-mod\/ has 3\)\n/,
+  );
+  assert.match(problems[0], /^\+ {2}int x;$/m);
+});
+
+test("MOD_SOURCE vs dir/zip differing only in line endings passes, either way round", () => {
+  const f = fixture(); // build.gradle: CRLF in dir and zip, LF in MOD_SOURCE (as in the real repo)
+  assert.deepEqual(compareModCopies(f).problems, []);
+  f.modSource.set("src/main/java/A.java", "class A {\r\n}\r\n"); // CRLF in MOD_SOURCE only
+  assert.deepEqual(compareModCopies(f).problems, []);
+});
 
 test("binaries and the exec bit are compared between dir and zip only", () => {
   const f = fixture();
