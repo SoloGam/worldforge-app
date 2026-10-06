@@ -1,0 +1,27 @@
+# gitleaks config for worldforge-app, used by the `secrets` job in .github/workflows/ci.yml.
+# Starts from gitleaks' built-in default rules and adds exactly one narrow exception.
+title = "worldforge-app gitleaks config"
+
+[extend]
+useDefault = true
+
+# src/lib/auth/preview.ts carries the app-builder platform's SHARED live-preview
+# OAuth client secret (PREVIEW_CLIENT_SECRET). It is platform template content,
+# not a secret of this project: every app generated from the template ships the
+# same value (Guardian found it in ~128 public repos, Oct 2026), it is
+# preview-only (*.grok-sandbox.com callbacks), and deployed apps override it
+# with a per-app GROK_AUTH_* secret.
+#
+# The exception is deliberately narrow. ALL of these must hold (condition AND):
+#   - rule: generic-api-key only (any other rule still fires on this file);
+#   - path: exactly src/lib/auth/preview.ts;
+#   - match: the finding starts with the PREVIEW_CLIENT_SECRET assignment.
+# The value itself is never written here. Any other variable in preview.ts,
+# the same variable name in any other file, and every other path stay covered.
+[[allowlists]]
+description = "Shared platform preview OAuth client secret (template content) in src/lib/auth/preview.ts"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = ['''^src/lib/auth/preview\.ts$''']
+regexTarget = "match"
+regexes = ['''\APREVIEW_CLIENT_SECRET\s*=''']
