@@ -106,11 +106,28 @@ jobs:
           echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/$tarball" | sha256sum --check --strict -
           tar -xzf "$RUNNER_TEMP/$tarball" -C "$RUNNER_TEMP" gitleaks
           "$RUNNER_TEMP/gitleaks" version
-      # Both scans use .gitleaks.toml (default rules + one narrow allowlist entry).
-      - name: Scan git history
-        run: '"$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --no-banner --verbose .'
+      # gitleaks 8.30.1 always loads ./.gitleaksignore, which silently drops
+      # findings by fingerprint. Exceptions belong in the reviewed .gitleaks.toml,
+      # so fail if one is tracked anywhere (":(glob)**/" also matches the root).
+      - name: Fail if a .gitleaksignore is tracked
+        run: |
+          set -euo pipefail
+          offending="$(git ls-files -- ':(glob)**/.gitleaksignore')"
+          if [ -n "$offending" ]; then
+            echo "::error title=Tracked .gitleaksignore::.gitleaksignore files would suppress gitleaks findings; remove them and put exceptions in .gitleaks.toml:"
+            while IFS= read -r file; do
+              echo "::error file=${file}::tracked .gitleaksignore: ${file}"
+            done <<< "$offending"
+            exit 1
+          fi
+          echo "No .gitleaksignore tracked."
+      # Both scans use .gitleaks.toml (default rules + one narrow allowlist entry),
+      # open archives (zips, incl. ones committed then deleted) and ignore inline
+      # `gitleaks:allow` comments, so only .gitleaks.toml can allow a finding.
+      - name: Scan git history (including files inside committed zips)
+        run: '"$RUNNER_TEMP/gitleaks" git --config .gitleaks.toml --redact --no-banner --verbose --max-archive-depth 2 --ignore-gitleaks-allow .'
       - name: Scan working tree (including files inside the zips)
-        run: '"$RUNNER_TEMP/gitleaks" dir --config .gitleaks.toml --redact --no-banner --verbose --max-archive-depth 2 .'
+        run: '"$RUNNER_TEMP/gitleaks" dir --config .gitleaks.toml --redact --no-banner --verbose --max-archive-depth 2 --ignore-gitleaks-allow .'
 
   mod-source-sync:
     name: mod-source sync (worldforge-mod/, 0.4.0 zip, MOD_SOURCE)
