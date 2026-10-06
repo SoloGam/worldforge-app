@@ -41,20 +41,12 @@ export const MOD_SOURCE_REL_PATH = "src/lib/worldforge/mod-source.ts";
 export const ZIP_PREFIX = "worldforge-mod/";
 
 /**
- * Tolerated drift between the dir and the shipped copies (zip + MOD_SOURCE).
- * Keep this list short and explain every entry; remove an entry as soon as the
- * copies are synced (the check prints a notice when an entry is no longer needed).
+ * Tolerated drift between the dir and the shipped copies (zip + MOD_SOURCE),
+ * as `Map<path, reason>`. Empty: all three copies must match exactly. Add an
+ * entry only for a deliberate, reviewed exception, explain it, and remove it
+ * once synced (the check prints a notice when an entry is no longer needed).
  */
-export const KNOWN_DRIFT = new Map([
-  [
-    // WF-001 corrected the build instructions in worldforge-mod/README.md only.
-    // The 0.4.0 zip and MOD_SOURCE still carry the original text; syncing them
-    // changes what users download and what /source shows, so it is a separate
-    // decision (tracked after WF-005).
-    "README.md",
-    "WF-001 updated worldforge-mod/README.md; the 0.4.0 zip and MOD_SOURCE keep the shipped text",
-  ],
-]);
+export const KNOWN_DRIFT = new Map();
 
 /**
  * Dir entries never compared, mirroring worldforge-mod/.gitignore: names are
