@@ -1,0 +1,27 @@
+# CODEOWNERS for SoloGam/worldforge-app
+#
+# A record of who owns the security-sensitive paths, and a way to get
+# @SoloGam auto-requested as reviewer on any PR (including Dependabot's) that
+# touches them. Code-owner review is NOT required: the "main protection"
+# ruleset sets require_code_owner_review=false and 0 required approvals, so
+# this file never blocks a merge on its own. Revisit that if outside
+# contributors or other accounts with merge rights are added.
+#
+# Later matching lines take precedence over earlier ones; every line here has
+# the same owner, so the order only matters for readability.
+
+# CI workflows, Dependabot config and this file itself.
+/.github/                       @SoloGam
+
+# gitleaks: the reviewed config is the only allowed exception path.
+/.gitleaks.toml                 @SoloGam
+# CI fails on any tracked .gitleaksignore; own them anywhere so one in a PR is noticed.
+.gitleaksignore                 @SoloGam
+
+# Git attributes change how files are checked out and diffed (the mod-source
+# byte-exact check, and the gitleaks history scan's view of past commits).
+.gitattributes                  @SoloGam
+
+# Auth: the shared live-preview client and the server-side fallback logic.
+/src/lib/auth/preview.ts        @SoloGam
+/src/lib/auth/server.ts         @SoloGam
