@@ -55,7 +55,7 @@ public final class WorldForgeSavedData extends SavedData {
 
     public static WorldForgeSavedData get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
-                new SavedData.Factory<>(WorldForgeSavedData::create, WorldForgeSavedData::load),
+                new SavedData.Factory<>(WorldForgeSavedData::create, WorldForgeSavedData::load, null),
                 NAME
         );
     }

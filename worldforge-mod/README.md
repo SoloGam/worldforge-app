@@ -32,13 +32,20 @@ If it provides nothing useful, WorldForge marks it **UNKNOWN**. It does not reve
 
 ## Build
 
+Requires JDK 21 (`JAVA_HOME` pointing at it). Run from this `worldforge-mod/` directory:
+
 ```bash
-./gradlew genIntellijRuns
 ./gradlew build
-./gradlew runClient
 ```
 
-The Gradle wrapper is included. First run downloads Minecraft mappings and Forge — expect several minutes.
+This produces `build/libs/worldforge-0.4.0.jar`. The Gradle wrapper is included. First run downloads Minecraft mappings and Forge — expect several minutes. There are no automated tests.
+
+Optional dev tasks:
+
+```bash
+./gradlew genIntellijRuns   # generate IntelliJ run configurations
+./gradlew runClient         # launch a dev Minecraft client with the mod
+```
 
 `./gradlew explainOptionalArs` prints why the Ars bridge is not compiled.
 

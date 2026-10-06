@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import test from "node:test";
+import test, { after, before } from "node:test";
 import {
   appNameFromHost,
   createHeadInjector,
@@ -20,6 +20,21 @@ import {
 import { renderInstallPage } from "./grok-pwa-plugin.mjs";
 
 const TEMPLATE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+
+// Many helpers default to process.cwd() for src/lib/og/site.json and
+// public/og.{jpg,png}. Run every test from an empty temp dir so the real
+// project's share-card files never leak into these expectations.
+let originalCwd;
+let isolatedCwd;
+before(() => {
+  originalCwd = process.cwd();
+  isolatedCwd = mkdtempSync(join(tmpdir(), "grok-pwa-test-cwd-"));
+  process.chdir(isolatedCwd);
+});
+after(() => {
+  process.chdir(originalCwd);
+  rmSync(isolatedCwd, { recursive: true, force: true });
+});
 
 test("injects before </head>", () => {
   const out = injectGrokPwaHead("<html><head><title>x</title></head><body></body></html>");
