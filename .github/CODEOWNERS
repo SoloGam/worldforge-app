@@ -22,6 +22,16 @@
 # byte-exact check, and the gitleaks history scan's view of past commits).
 .gitattributes                  @SoloGam
 
-# Auth: the shared live-preview client and the server-side fallback logic.
-/src/lib/auth/preview.ts        @SoloGam
-/src/lib/auth/server.ts         @SoloGam
+# Auth: the whole directory (shared live-preview client, server-side fallback,
+# session verification, middleware, and anything added there later).
+/src/lib/auth/                  @SoloGam
+
+# Mod-source sync check (script + test): the gate keeping worldforge-mod/, the
+# 0.4.0 zip and MOD_SOURCE identical. `*` matches within a file name
+# (gitignore syntax, supported by CODEOWNERS).
+/scripts/check-mod-source-sync*.mjs @SoloGam
+
+# Dependencies and the Node version: supply chain and Dependabot PRs.
+/package.json                   @SoloGam
+/package-lock.json              @SoloGam
+/.nvmrc                         @SoloGam
