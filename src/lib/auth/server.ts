@@ -14,12 +14,15 @@
  * Tri-mode:
  *   - Deployed: the deployer injects a per-app `GROK_AUTH_*` + `BETTER_AUTH_URL`
  *     + `DATABASE_URL`, so real federated auth is persisted in Postgres.
- *   - Sandbox live preview: no injection -> falls back to the shared **preview
- *     client** (`./preview`) and derives the preview's `https://*.grok-sandbox.com`
+ *   - Sandbox live preview / local dev (`vite dev`, no `GROK_PROJECT_ID`): no
+ *     injection -> falls back to the shared **preview client** (`./preview`) and
+ *     derives the preview's `https://*.grok-sandbox.com`
  *     origin from the request, so real sign-in works (no demo users). Sessions
  *     and identities persist in the embedded PGLite DB (same DB as app data);
  *     the process restart wipes both. Live-preview iframe clients use a bearer
- *     token (partitioned cookies) — see `client.ts`.
+ *     token (partitioned cookies) — see `client.ts`. Anywhere else, missing or
+ *     partial `GROK_AUTH_*` fails closed (`authConfigured` false, server log) —
+ *     never the preview client (see `./resolve-auth-client`).
  *   - Off (`VITE_AUTH_ENABLED=false`, the shipped default): no providers;
  *     `requireUserId` resolves a dev user with no database configured, and
  *     throws fail-closed once `DATABASE_URL` is set (see `verify.server.ts`).
@@ -36,6 +39,7 @@ import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
+import { isWorkspacePreview } from "../env.server";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
@@ -46,6 +50,7 @@ import {
   PREVIEW_CLIENT_ID,
   PREVIEW_CLIENT_SECRET,
 } from "./preview";
+import { resolveAuthClient } from "./resolve-auth-client";
 
 // Kick (and share) PGLite bootstrap as soon as the auth server module loads.
 void ensureDbReady();
@@ -70,20 +75,33 @@ const env = (key: string): string | undefined => {
   return value ? value : undefined;
 };
 
-// Explicit off-switch. The deployer sets `VITE_AUTH_ENABLED=true` when it
-// provisions auth; set it to "false" to force auth off everywhere (dev user).
-const authDisabled = env("VITE_AUTH_ENABLED") === "false";
-
-// Broker federation creds: the deployer injects a per-app client when deployed;
-// otherwise fall back to the shared live-preview client, which the broker accepts
-// for any `*.grok-sandbox.com` callback (see `./preview`).
+// Broker federation creds: the deployer injects a per-app client when deployed.
+// Only the sandbox live preview / local `vite dev` falls back to the shared
+// preview client (accepted for any `*.grok-sandbox.com` callback, see
+// `./preview`); anywhere else missing/partial creds fail closed.
+// `VITE_AUTH_ENABLED=false` forces auth off everywhere (dev user).
 const grokIssuer = env("GROK_AUTH_ISSUER") ?? GROK_ISSUER_DEFAULT;
-const grokClientId = env("GROK_AUTH_CLIENT_ID") ?? PREVIEW_CLIENT_ID;
-const grokClientSecret = env("GROK_AUTH_CLIENT_SECRET") ?? PREVIEW_CLIENT_SECRET;
+const brokerClient = resolveAuthClient(
+  process.env,
+  { clientId: PREVIEW_CLIENT_ID, clientSecret: PREVIEW_CLIENT_SECRET },
+  { workspacePreview: isWorkspacePreview() },
+);
+if (!brokerClient.configured && brokerClient.message) {
+  console.error(brokerClient.message);
+}
+const grokClientId = brokerClient.configured ? brokerClient.clientId : undefined;
+const grokClientSecret = brokerClient.configured ? brokerClient.clientSecret : undefined;
 
 /** True when federated sign-in is active (real auth is enforced). */
-export const authConfigured =
-  !authDisabled && Boolean(grokClientId && grokClientSecret);
+export const authConfigured = brokerClient.configured;
+
+/**
+ * Auth is meant to be on (not `VITE_AUTH_ENABLED=false`) but has no usable
+ * broker client (already logged above). Sessions still go through verification
+ * (`gateIdentityEnabled()` is true), so nothing falls back to the dev user.
+ */
+export const authMisconfigured =
+  !brokerClient.configured && brokerClient.reason !== "disabled";
 
 // This app's own Better Auth origin. When deployed the deployer injects the
 // public URL. In the sandbox live preview there's no fixed URL (each preview gets
