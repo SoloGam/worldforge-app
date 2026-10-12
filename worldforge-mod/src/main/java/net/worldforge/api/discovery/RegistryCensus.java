@@ -13,6 +13,7 @@ public final class RegistryCensus {
     private final int biomes;
     private final int enchantments;
     private final int structures;
+    private final int advancements;
 
     public RegistryCensus(
             int blocks,
@@ -22,7 +23,8 @@ public final class RegistryCensus {
             int recipeSerializers,
             int biomes,
             int enchantments,
-            int structures
+            int structures,
+            int advancements
     ) {
         this.blocks = blocks;
         this.items = items;
@@ -32,14 +34,17 @@ public final class RegistryCensus {
         this.biomes = biomes;
         this.enchantments = enchantments;
         this.structures = structures;
+        this.advancements = advancements;
     }
 
     public static RegistryCensus empty() {
-        return new RegistryCensus(0, 0, 0, 0, 0, 0, 0, 0);
+        return new RegistryCensus(0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
 
-    public RegistryCensus withDatapack(int biomes, int enchantments, int structures) {
-        return new RegistryCensus(blocks, items, entities, effects, recipeSerializers, biomes, enchantments, structures);
+    public RegistryCensus withDatapack(int biomes, int enchantments, int structures, int advancements) {
+        return new RegistryCensus(
+                blocks, items, entities, effects, recipeSerializers, biomes, enchantments, structures, advancements
+        );
     }
 
     public int blocks() { return blocks; }
@@ -50,8 +55,10 @@ public final class RegistryCensus {
     public int biomes() { return biomes; }
     public int enchantments() { return enchantments; }
     public int structures() { return structures; }
+    public int advancements() { return advancements; }
 
     public int totalKnown() {
-        return blocks + items + entities + effects + recipeSerializers + biomes + enchantments + structures;
+        return blocks + items + entities + effects + recipeSerializers
+                + biomes + enchantments + structures + advancements;
     }
 }

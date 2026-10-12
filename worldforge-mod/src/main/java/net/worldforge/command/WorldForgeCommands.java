@@ -13,12 +13,14 @@ import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.worldforge.WorldForge;
+import net.worldforge.api.ApiStability;
 import net.worldforge.api.combat.CombatSnapshot;
 import net.worldforge.api.integration.LoaderNote;
 import net.worldforge.api.knowledge.PlayerRecord;
 import net.worldforge.api.combat.DamageTypeInfo;
 import net.worldforge.api.combat.EntityCategoryCount;
 import net.worldforge.api.integration.AdapterDescriptor;
+import net.worldforge.api.integration.IntegrationDomain;
 import net.worldforge.api.knowledge.KnowledgeStatus;
 import net.worldforge.api.knowledge.ModKnowledge;
 import net.worldforge.api.magic.MagicSystemDescriptor;
@@ -27,8 +29,14 @@ import net.worldforge.api.world.PointOfInterest;
 import net.worldforge.api.world.Region;
 import net.worldforge.api.world.WorldEvent;
 import net.worldforge.core.WorldForgeCore;
+import net.worldforge.discovery.CensusFootprint;
+import net.worldforge.discovery.CensusPass;
+import net.worldforge.discovery.ModDiscoveryService;
+import net.worldforge.event.ExperimentalCombatProbe;
+import net.worldforge.integration.CompatProbe;
 
 import java.util.Collection;
+import java.util.Locale;
 import java.util.function.Function;
 
 /**
@@ -44,6 +52,7 @@ public final class WorldForgeCommands {
         return Commands.literal("worldforge")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("status").executes(ctx -> status(ctx.getSource())))
+                .then(Commands.literal("api").executes(ctx -> api(ctx.getSource())))
                 .then(Commands.literal("discover").executes(ctx -> discover(ctx.getSource())))
                 .then(Commands.literal("knowledge").executes(ctx -> knowledge(ctx.getSource())))
                 .then(Commands.literal("world").executes(ctx -> world(ctx.getSource())))
@@ -63,6 +72,10 @@ public final class WorldForgeCommands {
                                                 StringArgumentType.getString(ctx, "payload"))))))
                 .then(Commands.literal("magic").executes(ctx -> magic(ctx.getSource())))
                 .then(Commands.literal("combat").executes(ctx -> combat(ctx.getSource())))
+                .then(Commands.literal("worldgen").executes(ctx -> worldgen(ctx.getSource())))
+                .then(Commands.literal("quest").executes(ctx -> quest(ctx.getSource())))
+                .then(Commands.literal("technology").executes(ctx -> technology(ctx.getSource())))
+                .then(Commands.literal("profile").executes(ctx -> profile(ctx.getSource())))
                 .then(Commands.literal("player").executes(ctx -> players(ctx.getSource())))
                 .then(Commands.literal("compat").executes(ctx -> compat(ctx.getSource())))
                 .then(Commands.literal("bus").executes(ctx -> bus(ctx.getSource())))
@@ -88,6 +101,19 @@ public final class WorldForgeCommands {
                         + " | damage-types " + combat.damageTypeCount()
                         + " | bus " + core.eventBus().subscriberCount()
                         + " | fingerprint " + core.discovery().fingerprint()
+        ), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int api(CommandSourceStack source) {
+        source.sendSuccess(() -> Component.literal(
+                "WorldForge " + WorldForgeCore.VERSION
+                        + " surface " + ApiStability.SURFACE
+                        + " schema " + ApiStability.SAVED_DATA_SCHEMA
+                        + " frozen=net.worldforge.api"
+        ), false);
+        source.sendSuccess(() -> Component.literal(
+                "Bound to minecraft: combat, worldgen, quest, technology (recipe serializers). Unbound: magic. One damage id. No 200-mod pack measurement."
         ), false);
         return Command.SINGLE_SUCCESS;
     }
@@ -184,7 +210,8 @@ public final class WorldForgeCommands {
         if (types.isEmpty()) {
             source.sendSuccess(() -> Component.literal(
                     "Vanilla combat adapter is " + (snap.vanillaBound() ? "bound" : "unbound")
-                            + " — load a world to census Registries.DAMAGE_TYPE."
+                            + " — load a world to census Registries.DAMAGE_TYPE. "
+                            + probeLine()
             ), false);
             return Command.SINGLE_SUCCESS;
         }
@@ -206,6 +233,92 @@ public final class WorldForgeCommands {
             String line = type.id() + " exh=" + type.exhaustion() + " " + type.scaling() + " " + type.effects();
             source.sendSuccess(() -> Component.literal(line), false);
         }
+        source.sendSuccess(() -> Component.literal(probeLine()), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int worldgen(CommandSourceStack source) {
+        var adapter = WorldForge.core().adapter(IntegrationDomain.WORLDGEN).orElse(null);
+        boolean bound = adapter != null && adapter.isBound() && "minecraft".equals(adapter.boundTarget());
+        var census = WorldForge.core().discovery().census("minecraft");
+        StringBuilder extra = new StringBuilder();
+        if (adapter != null) {
+            for (String target : adapter.targetModIds()) {
+                if ("minecraft".equals(target)) {
+                    continue;
+                }
+                if (ModList.get().isLoaded(target)) {
+                    if (!extra.isEmpty()) {
+                        extra.append(',');
+                    }
+                    extra.append(target);
+                }
+            }
+        }
+        String extras = extra.isEmpty() ? "none" : extra.toString();
+        source.sendSuccess(() -> Component.literal(
+                "worldgen bound=" + bound
+                        + " biomes=" + census.biomes()
+                        + " structures=" + census.structures()
+                        + " extra=" + extras
+                        + " (vanilla registries only)"
+        ), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int quest(CommandSourceStack source) {
+        var adapter = WorldForge.core().adapter(IntegrationDomain.QUEST).orElse(null);
+        boolean bound = adapter != null && adapter.isBound() && "minecraft".equals(adapter.boundTarget());
+        var census = WorldForge.core().discovery().census("minecraft");
+        StringBuilder extra = new StringBuilder();
+        if (adapter != null) {
+            for (String target : adapter.targetModIds()) {
+                if ("minecraft".equals(target)) {
+                    continue;
+                }
+                if (ModList.get().isLoaded(target)) {
+                    if (!extra.isEmpty()) {
+                        extra.append(',');
+                    }
+                    extra.append(target);
+                }
+            }
+        }
+        String extras = extra.isEmpty() ? "none" : extra.toString();
+        source.sendSuccess(() -> Component.literal(
+                "quest bound=" + bound
+                        + " advancements=" + census.advancements()
+                        + " extra=" + extras
+                        + " (vanilla advancements only, not a quest graph)"
+        ), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int technology(CommandSourceStack source) {
+        var adapter = WorldForge.core().adapter(IntegrationDomain.TECHNOLOGY).orElse(null);
+        boolean bound = adapter != null && adapter.isBound() && "minecraft".equals(adapter.boundTarget());
+        var census = WorldForge.core().discovery().census("minecraft");
+        StringBuilder extra = new StringBuilder();
+        if (adapter != null) {
+            for (String target : adapter.targetModIds()) {
+                if ("minecraft".equals(target)) {
+                    continue;
+                }
+                if (ModList.get().isLoaded(target)) {
+                    if (!extra.isEmpty()) {
+                        extra.append(',');
+                    }
+                    extra.append(target);
+                }
+            }
+        }
+        String extras = extra.isEmpty() ? "none" : extra.toString();
+        source.sendSuccess(() -> Component.literal(
+                "technology bound=" + bound
+                        + " recipe-serializers=" + census.recipeSerializers()
+                        + " extra=" + extras
+                        + " (vanilla recipe serializers only, not a machine graph)"
+        ), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -224,6 +337,9 @@ public final class WorldForgeCommands {
     }
 
     private int compat(CommandSourceStack source) {
+        boolean probe = WorldForge.core().adapterDescriptors().stream()
+                .anyMatch(descriptor -> CompatProbe.ID.equals(descriptor.id()));
+        source.sendSuccess(() -> Component.literal("compat pack probe=" + (probe ? "present" : "absent")), false);
         Collection<LoaderNote> notes = WorldForge.core().loaderNotes();
         if (notes.isEmpty()) {
             source.sendSuccess(() -> Component.literal("No loader notes."), false);
@@ -239,6 +355,56 @@ public final class WorldForgeCommands {
             source.sendSuccess(() -> Component.literal(line), false);
         }
         return Command.SINGLE_SUCCESS;
+    }
+
+    private int profile(CommandSourceStack source) {
+        ModDiscoveryService discovery = WorldForge.core().discovery();
+        long combatMs = WorldForge.core().integrations().combat().censusMillis();
+        source.sendSuccess(() -> Component.literal(
+                "mods " + discovery.mods().size()
+                        + " | loader " + millis(discovery.loaderMillis())
+                        + " | forge " + millis(discovery.forgeCensusMillis()) + " " + passText(discovery.forgePass())
+                        + " | datapack " + millis(discovery.datapackCensusMillis()) + " " + passText(discovery.datapackPass())
+                        + " | combat " + millis(combatMs)
+        ), false);
+        source.sendSuccess(() -> Component.literal(probeLine()), false);
+        int retained = discovery.forgePass().retained();
+        source.sendSuccess(() -> Component.literal(
+                "retained payload " + CensusFootprint.countFieldBytes(retained) + " bytes"
+                        + " (" + retained + " records × " + CensusFootprint.PAYLOAD_BYTES_PER_RECORD
+                        + " count-field bytes). Not a heap dump. Not a 200-mod pack."
+        ), false);
+        source.sendSuccess(() -> Component.literal(
+                "Census keeps counts only. Keys are not stored. per-mod-shape is keys × namespaces, not a second run. High-volume combat keeps one damage id."
+        ), false);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static String passText(CensusPass pass) {
+        if (pass.passes() == 0 && pass.keysVisited() == 0L) {
+            return "walks=n/a";
+        }
+        return "walks=" + pass.passes()
+                + " keys=" + pass.keysVisited()
+                + " retained=" + pass.retained()
+                + " per-mod-shape=" + pass.repeatedShapeVisits();
+    }
+
+    private static String probeLine() {
+        ExperimentalCombatProbe probe = WorldForge.core().combatProbe();
+        if (!probe.registered() && probe.hits() == 0L) {
+            return "experimental combat off";
+        }
+        String last = probe.lastDamageId().isEmpty() ? "none" : probe.lastDamageId();
+        return "experimental combat " + (probe.registered() ? "on" : "detached")
+                + " hits=" + probe.hits()
+                + " summed=" + String.format(Locale.ROOT, "%.1f", probe.summedDamage())
+                + " peak/s=" + probe.peakPerSecond()
+                + " last=" + last;
+    }
+
+    private static String millis(long value) {
+        return value < 0L ? "n/a" : value + "ms";
     }
 
     private int bus(CommandSourceStack source) {

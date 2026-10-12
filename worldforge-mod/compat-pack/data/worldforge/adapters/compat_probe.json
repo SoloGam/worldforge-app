@@ -1,0 +1,7 @@
+{
+  "id": "worldforge:compat_probe",
+  "domain": "WORLDGEN",
+  "targets": [],
+  "bindPolicy": "documented-api-only",
+  "notes": "Compatibility pack probe. Presence means this datapack was loaded. It does not bind any mod."
+}

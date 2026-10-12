@@ -10,7 +10,7 @@ If it provides nothing useful, WorldForge marks it **UNKNOWN**. It does not reve
 
 ## Status
 
-**0.4.0 — player knowledge and loader honesty.** Vanilla combat is still bound through `Registries.DAMAGE_TYPE`. Player records persist in the world save (schema 3) and are dropped if the modpack fingerprint changes. Ars Nouveau and Iron's Spells stay unbound: their 1.21 APIs are published for NeoForge, and this project is Forge. `src/optional-ars` is in the tree and excluded from the jar.
+**1.1.0 — vanilla technology.** Surface 1 and schema 3 are unchanged. `/worldforge technology` binds vanilla recipe serializers. Create, Immersive Engineering, and Mekanism stay detected: their 1.21.1 lines are NeoForge, and a serializer count is not a machine graph. Magic stays unbound. The combat probe stores one damage id. The census payload is still nine ints per namespace. A 200-mod pack was not measured.
 
 | Phase | Scope | State |
 | --- | --- | --- |
@@ -21,8 +21,8 @@ If it provides nothing useful, WorldForge marks it **UNKNOWN**. It does not reve
 | 5 | Generic adapters + integration manager | Done |
 | 6 | World systems (regions, POIs, environment) | Done |
 | 7–8 | Magic / combat integration | Done (vanilla combat bound; third-party magic detect-only) |
-| 9 | Player knowledge, loader mismatch, disabled optional bridge | In progress (0.4.0) |
-| 10 | Optimisation | Not started |
+| 9 | Player knowledge, loader mismatch, Spell Engine refusal, compat pack | Done (0.4.0–0.5.0). No Forge-published magic API to bind |
+| 10 | Single-pass census, retained count-field payload | Done as structure. A 200-mod pack was not measured |
 
 ## Requirements
 
@@ -38,7 +38,7 @@ Requires JDK 21 (`JAVA_HOME` pointing at it). Run from this `worldforge-mod/` di
 ./gradlew build
 ```
 
-This produces `build/libs/worldforge-0.4.0.jar`. The Gradle wrapper is included. First run downloads Minecraft mappings and Forge — expect several minutes. There are no automated tests.
+This produces `build/libs/worldforge-1.1.0.jar`. The Gradle wrapper is included. First run downloads Minecraft mappings and Forge — expect several minutes. There are no automated tests.
 
 Optional dev tasks:
 
@@ -66,6 +66,7 @@ Operator command (permission 2):
 /worldforge event raid village_bell
 /worldforge magic
 /worldforge combat
+/worldforge profile
 /worldforge player
 /worldforge compat
 /worldforge bus
@@ -78,7 +79,7 @@ Common config (`worldforge-common.toml`):
 - `discoveryOnStartup` — scan mods during common setup
 - `scanDatapackRegistries` — census biomes/enchantments/structures on server start
 - `integrations.*` — enable/disable adapter families
-- `experimentalFeatures` — reserved for high-volume events (off)
+- `experimentalFeatures` — while a server is running, count `LivingDamageEvent`, track a one-second peak, and keep the latest damage-type id (off). The listener is not registered when this is off. Hits are not logged
 
 ## Architecture
 
@@ -101,16 +102,16 @@ net.worldforge
   integration/   Adapter manager, loader mismatch catalog
   combat/        Vanilla combat census
   magic/         Detected magic catalog
-  event/         Narrow Forge event router
+  event/         Narrow Forge event router + experimental combat probe
   world/         World-state façade, player registry
   command/       Diagnostics
 ```
 
-`src/optional-ars` is outside `src/main` and is not packaged.
+`src/optional-ars` is outside `src/main` and is not packaged. `compat-pack/` is a datapack, not a source set.
 
 ## Compatibility
 
-WorldForge has **no optional Maven dependencies**. Target mods are detected at runtime with `ModList.isLoaded`. A missing magic/tech/quest mod never crashes the loader. The combat adapter binds **vanilla only**. Ars Nouveau and Iron's Spells are recorded as NeoForge-published APIs and are not bound on Forge 1.21.1.
+WorldForge has **no optional Maven dependencies**. Target mods are detected at runtime with `ModList.isLoaded`. A missing magic/tech/quest mod never crashes the loader. The combat adapter binds **vanilla only**. Ars Nouveau, Iron's Spells, and Spell Engine are recorded as APIs that are not published for Forge 1.21.1, and are not bound. Drop `compat-pack/` into a world's `datapacks/` folder to confirm descriptor reload; see [compat-pack/README.md](compat-pack/README.md).
 
 ## License
 

@@ -1,7 +1,7 @@
 {
   "id": "worldforge:worldgen",
   "domain": "WORLDGEN",
-  "targets": ["terralith", "biomesoplenty", "alexscaves"],
-  "bindPolicy": "registry-census-only",
-  "notes": "Datapack biomes and structures can be counted. Generation mechanics stay unknown."
+  "targets": ["minecraft", "terralith", "biomesoplenty", "alexscaves"],
+  "bindPolicy": "vanilla-registry-then-census",
+  "notes": "Binds vanilla biomes and structures. Terralith, Biomes O' Plenty, and Alex's Caves stay detected-only."
 }

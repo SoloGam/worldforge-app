@@ -25,10 +25,17 @@ public final class ModDiscoveryService {
     private final Map<String, DiscoveredMod> mods = new LinkedHashMap<>();
     private final Map<String, RegistryCensus> censuses = new LinkedHashMap<>();
     private String fingerprint = "";
+    private long loaderMillis = -1L;
+    private long forgeCensusMillis = -1L;
+    private long datapackCensusMillis = -1L;
+    private CensusPass forgePass = CensusPass.none();
+    private CensusPass datapackPass = CensusPass.none();
 
     public synchronized List<DiscoveredMod> discoverLoaderMetadata() {
         mods.clear();
         censuses.clear();
+        forgePass = CensusPass.none();
+        datapackPass = CensusPass.none();
         long start = System.nanoTime();
 
         for (IModInfo info : ModList.get().getMods()) {
@@ -37,33 +44,39 @@ public final class ModDiscoveryService {
         }
 
         fingerprint = computeFingerprint();
-        long ms = (System.nanoTime() - start) / 1_000_000L;
+        loaderMillis = (System.nanoTime() - start) / 1_000_000L;
         WorldForgeLog.info(LogCategory.DISCOVERY, "Loader metadata: %d mods, fingerprint %s (%d ms)",
-                mods.size(), fingerprint, ms);
+                mods.size(), fingerprint, loaderMillis);
         return List.copyOf(mods.values());
     }
 
     public synchronized void censusForgeRegistries() {
         long start = System.nanoTime();
-        for (String modId : mods.keySet()) {
-            censuses.put(modId, probe.probeForgeRegistries(modId));
-        }
-        long ms = (System.nanoTime() - start) / 1_000_000L;
-        WorldForgeLog.info(LogCategory.PERFORMANCE, "Forge registry census for %d namespaces in %d ms", mods.size(), ms);
+        RegistryProbe.Batch batch = probe.censusForge(mods.keySet());
+        censuses.clear();
+        censuses.putAll(batch.censuses());
+        forgePass = batch.pass();
+        forgeCensusMillis = (System.nanoTime() - start) / 1_000_000L;
+        WorldForgeLog.info(LogCategory.PERFORMANCE,
+                "Forge registry census: %d namespaces, %d walks, %d keys visited, %d count-records retained (%d ms). A per-namespace walk would have read %d keys.",
+                mods.size(), forgePass.passes(), forgePass.keysVisited(), forgePass.retained(), forgeCensusMillis, forgePass.repeatedShapeVisits());
     }
 
     public synchronized void censusDatapackRegistries(MinecraftServer server) {
-        if (!WorldForgeConfig.scanDatapackRegistries()) {
+        if (!WorldForgeConfig.scanDatapackRegistries() || server == null) {
+            datapackCensusMillis = -1L;
+            datapackPass = CensusPass.none();
             return;
         }
         long start = System.nanoTime();
-        var access = server.registryAccess();
-        for (String modId : mods.keySet()) {
-            RegistryCensus base = censuses.getOrDefault(modId, RegistryCensus.empty());
-            censuses.put(modId, probe.enrichDatapack(base, access, modId));
-        }
-        long ms = (System.nanoTime() - start) / 1_000_000L;
-        WorldForgeLog.info(LogCategory.PERFORMANCE, "Datapack registry census in %d ms", ms);
+        RegistryProbe.Batch batch = probe.enrichDatapack(censuses, server.registryAccess(), mods.keySet());
+        censuses.clear();
+        censuses.putAll(batch.censuses());
+        datapackPass = batch.pass();
+        datapackCensusMillis = (System.nanoTime() - start) / 1_000_000L;
+        WorldForgeLog.info(LogCategory.PERFORMANCE,
+                "Datapack registry census: %d walks, %d keys visited, %d count-records retained (%d ms). A per-namespace walk would have read %d keys.",
+                datapackPass.passes(), datapackPass.keysVisited(), datapackPass.retained(), datapackCensusMillis, datapackPass.repeatedShapeVisits());
     }
 
     public Collection<DiscoveredMod> mods() {
@@ -80,6 +93,27 @@ public final class ModDiscoveryService {
 
     public String fingerprint() {
         return fingerprint;
+    }
+
+    /** Milliseconds, or {@code -1} if that pass has not run. */
+    public long loaderMillis() {
+        return loaderMillis;
+    }
+
+    public long forgeCensusMillis() {
+        return forgeCensusMillis;
+    }
+
+    public long datapackCensusMillis() {
+        return datapackCensusMillis;
+    }
+
+    public CensusPass forgePass() {
+        return forgePass;
+    }
+
+    public CensusPass datapackPass() {
+        return datapackPass;
     }
 
     public boolean isLoaded(String modId) {
