@@ -28,6 +28,35 @@ public final class LoaderCompatibilityCatalog {
                     KnowledgeStatus.PARTIALLY_KNOWN,
                     "Iron's Spells documents a Forge API for 1.20.1 and below. The 1.21 line is NeoForge. "
                             + "WorldForge will not bind it on Forge 1.21.1."
+            ),
+            new LoaderNote(
+                    "spell_engine",
+                    PublishedLoader.NEOFORGE,
+                    KnowledgeStatus.PARTIALLY_KNOWN,
+                    "Spell Engine 1.21.1 publishes Fabric and NeoForge modules (common API under net.spell_engine). "
+                            + "The 1.21.1 tree has no Forge module. WorldForge does not compile that API."
+            ),
+            new LoaderNote(
+                    "create",
+                    PublishedLoader.NEOFORGE,
+                    KnowledgeStatus.PARTIALLY_KNOWN,
+                    "Create 6.x for 1.21.1 publishes its API on NeoForge, including com.simibubi.create.api. "
+                            + "WorldForge targets Forge 52.1.0 and does not compile that API. "
+                            + "A vanilla recipe-serializer count is not kinetics."
+            ),
+            new LoaderNote(
+                    "immersiveengineering",
+                    PublishedLoader.NEOFORGE,
+                    KnowledgeStatus.PARTIALLY_KNOWN,
+                    "Immersive Engineering's 1.21.1 line is NeoForge. WorldForge does not compile it "
+                            + "and does not simulate its multiblocks or energy."
+            ),
+            new LoaderNote(
+                    "mekanism",
+                    PublishedLoader.NEOFORGE,
+                    KnowledgeStatus.PARTIALLY_KNOWN,
+                    "Mekanism 10.7 for 1.21.1 publishes NeoForge. WorldForge does not compile it "
+                            + "and does not simulate its machines or gases."
             )
     );
 

@@ -43,7 +43,7 @@ public final class WorldForgeConfig {
             .define("integrations.worldgen", true);
 
     private static final ForgeConfigSpec.BooleanValue EXPERIMENTAL = BUILDER
-            .comment("Subscribe to high-volume Forge events (block/entity). Off by default for performance.")
+            .comment("While a server is running, count LivingDamageEvent, track a one-second peak, and keep the latest damage-type id. No per-hit log. Read when the server starts. Off by default.")
             .define("experimentalFeatures", false);
 
     public static final ForgeConfigSpec SPEC = BUILDER.build();

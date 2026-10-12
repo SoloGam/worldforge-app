@@ -31,6 +31,7 @@ public final class CombatCatalog {
     private final List<EntityCategoryCount> entityCategories = new ArrayList<>();
     private final List<String> extraDetected = new ArrayList<>();
     private boolean vanillaBound;
+    private long censusMillis = -1L;
 
     public void clear() {
         damageTypes.clear();
@@ -73,10 +74,10 @@ public final class CombatCatalog {
             entityCategories.add(new EntityCategoryCount(entry.getKey(), entry.getValue()));
         }
         vanillaBound = !damageTypes.isEmpty();
-        long ms = (System.nanoTime() - start) / 1_000_000L;
+        censusMillis = (System.nanoTime() - start) / 1_000_000L;
         WorldForgeLog.info(LogCategory.PERFORMANCE,
                 "Vanilla combat census: %d damage types, %d attributes, %d entity categories (%d ms)",
-                damageTypes.size(), attributes.size(), entityCategories.size(), ms);
+                damageTypes.size(), attributes.size(), entityCategories.size(), censusMillis);
     }
 
     public void recordExtra(String modId) {
@@ -87,6 +88,11 @@ public final class CombatCatalog {
 
     public void markVanillaBound() {
         vanillaBound = true;
+    }
+
+    /** Milliseconds of the last census, or {@code -1} if attach has not run. Survives {@link #clear()}. */
+    public long censusMillis() {
+        return censusMillis;
     }
 
     public Collection<DamageTypeInfo> damageTypes() {

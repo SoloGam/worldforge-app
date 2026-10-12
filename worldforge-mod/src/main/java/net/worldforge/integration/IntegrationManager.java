@@ -94,4 +94,8 @@ public final class IntegrationManager {
     public Collection<AdapterDescriptor> descriptors() {
         return descriptors.all();
     }
+
+    public void reloadDescriptors(net.minecraft.server.packs.resources.ResourceManager manager) {
+        descriptors.loadFromResources(manager);
+    }
 }

@@ -1,0 +1,6 @@
+{
+  "pack": {
+    "description": "WorldForge 1.1.0 compatibility probe. Adds one adapter descriptor and binds nothing.",
+    "pack_format": 48
+  }
+}

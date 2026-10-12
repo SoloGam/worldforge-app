@@ -25,6 +25,7 @@ import net.worldforge.core.logging.LogCategory;
 import net.worldforge.core.logging.WorldForgeLog;
 import net.worldforge.core.services.ServiceRegistry;
 import net.worldforge.discovery.ModDiscoveryService;
+import net.worldforge.event.ExperimentalCombatProbe;
 import net.worldforge.integration.IntegrationManager;
 import net.worldforge.integration.LoaderCompatibilityCatalog;
 import net.worldforge.knowledge.KnowledgeLayer;
@@ -40,7 +41,7 @@ import java.util.Optional;
  * Deliberately not a god-object: each concern is a dedicated service.
  */
 public final class WorldForgeCore implements WorldForgeAPI {
-    public static final String VERSION = "0.4.0";
+    public static final String VERSION = "1.1.0";
 
     private final ServiceRegistry services = new ServiceRegistry();
     private final ModDiscoveryService discovery = new ModDiscoveryService();
@@ -50,6 +51,7 @@ public final class WorldForgeCore implements WorldForgeAPI {
     private final IntegrationManager integrations = new IntegrationManager(magic, combat);
     private final WorldStateService world = new WorldStateService();
     private final WorldForgeEventBus bus = new WorldForgeEventBus();
+    private final ExperimentalCombatProbe combatProbe = new ExperimentalCombatProbe();
     private boolean bootstrapped;
 
     public WorldForgeCore() {
@@ -71,7 +73,7 @@ public final class WorldForgeCore implements WorldForgeAPI {
         if (bootstrapped) {
             return;
         }
-        WorldForgeLog.info(LogCategory.CORE, "WorldForge %s — player knowledge + loader mismatch catalog", VERSION);
+        WorldForgeLog.info(LogCategory.CORE, "WorldForge %s — stable API surface 1, schema 3", VERSION);
         if (WorldForgeConfig.discoveryOnStartup()) {
             runDiscovery();
         }
@@ -145,12 +147,19 @@ public final class WorldForgeCore implements WorldForgeAPI {
     }
 
     private Adapter findAdapterFor(String modId) {
+        Adapter fallback = null;
         for (Adapter adapter : integrations.adapters()) {
-            if (adapter.targetModIds().contains(modId)) {
+            if (!adapter.targetModIds().contains(modId)) {
+                continue;
+            }
+            if (adapter.isBound() && modId.equals(adapter.boundTarget())) {
                 return adapter;
             }
+            if (fallback == null) {
+                fallback = adapter;
+            }
         }
-        return null;
+        return fallback;
     }
 
     private static List<String> detectApis(DiscoveredMod mod, Adapter adapter, AdapterState state, boolean thisModBound) {
@@ -193,8 +202,15 @@ public final class WorldForgeCore implements WorldForgeAPI {
 
     @Override
     public boolean isIntegrationBound(String modId) {
-        Adapter adapter = findAdapterFor(modId);
-        return adapter != null && adapter.isBound() && modId.equals(adapter.boundTarget());
+        if (modId == null) {
+            return false;
+        }
+        for (Adapter adapter : integrations.adapters()) {
+            if (adapter.isBound() && modId.equals(adapter.boundTarget())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -298,5 +314,9 @@ public final class WorldForgeCore implements WorldForgeAPI {
 
     public WorldStateService world() {
         return world;
+    }
+
+    public ExperimentalCombatProbe combatProbe() {
+        return combatProbe;
     }
 }

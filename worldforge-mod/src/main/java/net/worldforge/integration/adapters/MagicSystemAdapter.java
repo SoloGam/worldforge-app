@@ -19,6 +19,7 @@ import java.util.Set;
  * Known targets (not Maven dependencies):
  * - ars_nouveau: 1.21.x API is NeoForge. Not compiled into this Forge jar.
  * - irons_spellbooks: Forge API is documented for 1.20.1 and below; 1.21 is NeoForge.
+ * - spell_engine: 1.21.1 publishes Fabric and NeoForge only. Not compiled.
  *
  * Detecting a magic mod is not the same as understanding it. This adapter
  * records the loader mismatch and refuses to bind.
@@ -27,7 +28,12 @@ public final class MagicSystemAdapter extends NoOpAdapter {
     private final MagicCatalog catalog;
 
     public MagicSystemAdapter(boolean enabled, MagicCatalog catalog) {
-        super("worldforge:magic", IntegrationDomain.MAGIC, Set.of("ars_nouveau", "irons_spellbooks"), enabled);
+        super(
+                "worldforge:magic",
+                IntegrationDomain.MAGIC,
+                Set.of("ars_nouveau", "irons_spellbooks", "spell_engine"),
+                enabled
+        );
         this.catalog = catalog;
     }
 

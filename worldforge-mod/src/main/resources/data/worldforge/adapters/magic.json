@@ -1,7 +1,7 @@
 {
   "id": "worldforge:magic",
   "domain": "MAGIC",
-  "targets": ["ars_nouveau", "irons_spellbooks"],
+  "targets": ["ars_nouveau", "irons_spellbooks", "spell_engine"],
   "bindPolicy": "documented-api-only",
-  "notes": "1.21.1 APIs for these mods are published for NeoForge. WorldForge is Forge and does not compile them. src/optional-ars is excluded from the jar."
+  "notes": "1.21.1 APIs for Ars Nouveau, Iron's Spells, and Spell Engine are published for NeoForge (Spell Engine also Fabric). WorldForge is Forge and does not compile them."
 }

@@ -1,7 +1,7 @@
 {
   "id": "worldforge:technology",
   "domain": "TECHNOLOGY",
-  "targets": ["create", "immersiveengineering", "mekanism"],
-  "bindPolicy": "documented-api-only",
-  "notes": "Create/IE/Mekanism presence is not kinetic or energy simulation."
+  "targets": ["minecraft", "create", "immersiveengineering", "mekanism"],
+  "bindPolicy": "vanilla-recipe-serializers-only",
+  "notes": "Binds vanilla recipe serializers already counted by the Forge census. Create, Immersive Engineering, and Mekanism stay detected-only. A serializer count is not a machine graph."
 }
